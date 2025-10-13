@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABC Kodefikasi Expired Beverage</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+         <header>
+            <img src="logo-abc.png" alt="Logo ABC" class="header-logo">
+            <h2>Kodefikasi Expired Beverage</h2>
+        </header>
+
+        <form id="expiredCodeForm">
+            <label for="sku">Pilih SKU *</label>
+            <select id="sku" name="sku" required></select>
+
+            <label for="kemasan">Pilih Jenis Kemasan *</label>
+            <select id="kemasan" name="kemasan" required></select>
+            
+            <div class="detail-box">
+                <p><strong>SKU:</strong> <span id="displaySku">N/A</span></p>
+                <p><strong>Jenis Kemasan:</strong> <span id="displayKemasan">N/A</span></p>
+                <p><strong>Kode Produk (NN):</strong> <span id="displayKodeProduk">N/A</span></p>
+                <p><strong>Masa Expired (Otomatis):</strong> <span id="displayMasaExpired">N/A</span></p>
+            </div>
+
+            <label for="tglProduksi">Tanggal Produksi *</label>
+            <input type="date" id="tglProduksi" name="tglProduksi" value="2025-10-31" required>
+            
+            <button type="submit" class="calculate-button">
+                Hasil Kode Expired Final Untuk Pencetakan
+            </button>
+        </form>
+
+        <div id="resultArea" class="result-area" style="display: none;">
+            <hr>
+            <h3>HASIL KODE EXPIRED FINAL UNTUK PENCETAKAN</h3>
+            <p>Tanggal Expired (YYYY-MM-DD): <span id="tanggalExpired"></span></p>
+            <p class="final-code"><span id="kodeExpiredFinal"></span></p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
