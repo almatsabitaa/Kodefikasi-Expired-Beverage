@@ -99,7 +99,6 @@ function updateDetails() {
         document.getElementById('displaySku').textContent = 'N/A';
         document.getElementById('displayKemasan').textContent = 'N/A';
         document.getElementById('displayKodeProduk').textContent = 'N/A';
-        document.getElementById('displayMasaExpired').textContent = 'N/A';
     }
 }
 
