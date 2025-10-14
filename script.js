@@ -82,7 +82,6 @@ function updateDetails() {
             document.getElementById('displaySku').textContent = currentSKU;
             document.getElementById('displayKemasan').textContent = foundProduct.jenis_kemasan + (currentLine ? ` (Line ${currentLine})` : '');
             document.getElementById('displayKodeProduk').textContent = currentKodeProduk;
-            document.getElementById('displayMasaExpired').textContent = currentShelfLife + " Bulan";
         } else {
             alert("Kombinasi SKU dan Jenis Kemasan ini tidak ditemukan dalam data.");
             currentShelfLife = 0;
@@ -91,7 +90,6 @@ function updateDetails() {
             document.getElementById('displaySku').textContent = 'N/A';
             document.getElementById('displayKemasan').textContent = 'N/A';
             document.getElementById('displayKodeProduk').textContent = 'N/A';
-            document.getElementById('displayMasaExpired').textContent = 'N/A';
         }
     } else {
         // Reset tampilan jika belum lengkap
