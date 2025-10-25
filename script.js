@@ -1,309 +1,154 @@
-// Data Master Produk Anda
-const masterDataProduk = [
-    { sku: "NTOR", jenis_kemasan: "PET", shelf_life_bulan: 13, kode_produk: "TO" },
-    { sku: "NTHN", jenis_kemasan: "PET", shelf_life_bulan: 13, kode_produk: "TH" },
-    { sku: "NTHN", jenis_kemasan: "PAPER PACK", shelf_life_bulan: 13, kode_produk: "TH" },
-    { sku: "NTLS", jenis_kemasan: "PET", shelf_life_bulan: 13, kode_produk: "TL" },
-    { sku: "NTRJ", jenis_kemasan: "PET", shelf_life_bulan: 13, kode_produk: "TR" },
-    { sku: "NILC", jenis_kemasan: "PET", shelf_life_bulan: 12, kode_produk: "TC" },
-    { sku: "NUYT", jenis_kemasan: "PET", shelf_life_bulan: 13, kode_produk: "TY" },
-    { sku: "NUYB", jenis_kemasan: "PET", shelf_life_bulan: 12, kode_produk: "TB" },
-    { sku: "MTOR", jenis_kemasan: "PET", shelf_life_bulan: 13, kode_produk: "MO" },
-    { sku: "MTTK", jenis_kemasan: "PET", shelf_life_bulan: 13, kode_produk: "MT" },
-    { sku: "MTCH", jenis_kemasan: "PET", shelf_life_bulan: 13, kode_produk: "MC" },
-    { sku: "MTCH", jenis_kemasan: "PAPER PACK", shelf_life_bulan: 12, kode_produk: "MC" },
-    { sku: "MTML", jenis_kemasan: "PET", shelf_life_bulan: 12, kode_produk: "ML" },
-];
-
-// Variabel untuk menyimpan data produk yang sedang dipilih
-let currentShelfLife = 0;
-let currentKodeProduk = '';
-let currentSKU = '';
-let currentLine = ''; // Line Produksi (A atau B)
-
-// Ambil elemen-elemen DOM
-const skuSelect = document.getElementById('sku');
-const kemasanSelect = document.getElementById('kemasan');
-const form = document.getElementById('expiredCodeForm');
-
-// --- FUNGSI PENGISI DROPDOWN DAN UPDATE DETAIL ---
-
-function populateDropdowns() {
-    // Pastikan elemen ditemukan sebelum mencoba menambahkan opsi
-    if (!skuSelect || !kemasanSelect) return; 
-
-    const uniqueSKUs = [...new Set(masterDataProduk.map(p => p.sku))];
-    uniqueSKUs.forEach(sku => {
-        const option = document.createElement('option');
-        option.value = sku;
-        option.textContent = sku;
-        skuSelect.appendChild(option);
-    });
-
-    const uniqueKemasan = [...new Set(masterDataProduk.map(p => p.jenis_kemasan))];
-    uniqueKemasan.forEach(kemasan => {
-        const option = document.createElement('option');
-        option.value = kemasan;
-        option.textContent = kemasan;
-        kemasanSelect.appendChild(option);
-    });
-
-    // Tambahkan opsi default "Pilih..."
-    skuSelect.insertBefore(new Option("Pilih SKU", "", true, true), skuSelect.firstChild);
-    kemasanSelect.insertBefore(new Option("Pilih Jenis Kemasan", "", true, true), kemasanSelect.firstChild);
-    
-    skuSelect.value = "";
-    kemasanSelect.value = "";
-}
-
-function updateDetails() {
-    const selectedSku = skuSelect.value;
-    const selectedKemasan = kemasanSelect.value;
-    
-    // Tentukan Line Produksi (Perbaikan untuk PAPER PACK)
-    if (selectedKemasan === 'PET') {
-        currentLine = 'B';
-    } else if (selectedKemasan === 'PAPER PACK') {
-        currentLine = ''; // Paper Pack TIDAK ADA Line (A/B)
-    } else {
-        currentLine = '';
-    }
-
-    if (selectedSku && selectedKemasan) {
-        const foundProduct = masterDataProduk.find(p =>
-            p.sku === selectedSku && p.jenis_kemasan === selectedKemasan
-        );
-
-        if (foundProduct) {
-            currentShelfLife = foundProduct.shelf_life_bulan;
-            currentKodeProduk = foundProduct.kode_produk;
-            currentSKU = foundProduct.sku;
-
-            document.getElementById('displaySku').textContent = currentSKU;
-            // Hanya tampilkan (Line B) jika currentLine tidak kosong
-            document.getElementById('displayKemasan').textContent = foundProduct.jenis_kemasan + (currentLine ? ` (Line ${currentLine})` : '');
-            document.getElementById('displayKodeProduk').textContent = currentKodeProduk;
-        } else {
-            alert("Kombinasi SKU dan Jenis Kemasan ini tidak ditemukan dalam data.");
-            currentShelfLife = 0;
-            currentKodeProduk = '';
-            currentLine = '';
-            document.getElementById('displaySku').textContent = 'N/A';
-            document.getElementById('displayKemasan').textContent = 'N/A';
-            document.getElementById('displayKodeProduk').textContent = 'N/A';
-        }
-    } else {
-        // Reset tampilan jika belum lengkap
-        currentShelfLife = 0;
-        currentKodeProduk = '';
-        currentLine = '';
-        document.getElementById('displaySku').textContent = 'N/A';
-        document.getElementById('displayKemasan').textContent = 'N/A';
-        document.getElementById('displayKodeProduk').textContent = 'N/A';
-    }
-}
-
-// --- FUNGSI UTAMA UNTUK LOGIKA TANGGAL KHUSUS DAN KODE AKHIR ---
-
-/**
- * Mengecek apakah tahun adalah tahun kabisat
- * @param {number} year 
- */
-function isLeapYear(year) {
-    return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
-}
-
-/**
- * Menghitung tanggal expired dan menentukan akhiran kode (NN, NNC, NNX) 
- * @param {Date} prodDate 
- * @param {number} shelfLife 
- * @returns {{tgl: Date, akhiran: string}}
- */
-function calculateExpiryData(prodDate, shelfLife) {
-    let expDate = new Date(prodDate); // Copy tanggal produksi
-    let akhiran = currentKodeProduk; // Default: NN
-
-    const prodDay = prodDate.getDate();
-    const prodMonth = prodDate.getMonth() + 1; // Bulan 1-12 (Januari = 1)
-    const prodYear = prodDate.getFullYear();
-
-    // Flag untuk menandai apakah kasus ini sudah ditangani oleh aturan khusus
-    let handledBySpecialRule = false;
-
-    // --- KASUS SPESIAL JANUARI (29, 30, 31) dengan Shelf Life 13 Bulan ---
-    if (prodMonth === 1 && shelfLife === 13 && (prodDay === 29 || prodDay === 30 || prodDay === 31)) {
-        akhiran = currentKodeProduk + 'X';
-        expDate.setFullYear(prodYear + 1); 
-        
-        if (prodDay === 29) {
-            // Expired: 1 Maret (bukan kabisat) atau 29 Feb (kabisat) tahun berikutnya
-            if (isLeapYear(expDate.getFullYear())) {
-                expDate.setMonth(1); // Feb (indeks 1)
-                expDate.setDate(29);
-            } else {
-                expDate.setMonth(2); // Mar (indeks 2)
-                expDate.setDate(1); 
-            }
-        } else if (prodDay === 30) {
-            // Expired: 2 Maret tahun berikutnya
-            expDate.setMonth(2); // Mar (indeks 2)
-            expDate.setDate(2);
-        } else if (prodDay === 31) {
-            // Expired: 3 Maret tahun berikutnya
-            expDate.setMonth(2); // Mar (indeks 2)
-            expDate.setDate(3);
-        }
-        handledBySpecialRule = true;
-    }
-    
-    // --- KASUS SPESIAL LAINNYA (Februari, Maret, Mei, Agustus, Oktober) ---
-    
-    // KASUS FEBRUARI (29)
-    else if (prodMonth === 2 && prodDay === 29) {
-        expDate.setFullYear(prodYear + 1);
-        if (shelfLife === 12) {
-            akhiran = currentKodeProduk + 'X';
-            expDate.setMonth(2); expDate.setDate(1); // 1 Maret tahun berikutnya
-        } else if (shelfLife === 13) {
-            akhiran = currentKodeProduk + 'C';
-            expDate.setMonth(2); expDate.setDate(29); // 29 Maret tahun berikutnya
-        }
-        handledBySpecialRule = true;
-    }
-    
-    // KASUS MARET (31)
-    else if (prodMonth === 3 && prodDay === 31) {
-        expDate.setFullYear(prodYear + 1);
-        if (shelfLife === 12) {
-            expDate.setMonth(2); expDate.setDate(31); 
-        } else if (shelfLife === 13) {
-            akhiran = currentKodeProduk + 'X';
-            expDate.setMonth(4); expDate.setDate(1); 
-        }
-        handledBySpecialRule = true;
-    }
-    
-    // KASUS MEI (31)
-    else if (prodMonth === 5 && prodDay === 31) {
-        expDate.setFullYear(prodYear + 1);
-        if (shelfLife === 12) {
-            expDate.setMonth(4); expDate.setDate(31); 
-        } else if (shelfLife === 13) {
-            akhiran = currentKodeProduk + 'X';
-            expDate.setMonth(6); expDate.setDate(1); 
-        }
-        handledBySpecialRule = true;
-    }
-
-    // KASUS AGUSTUS (31)
-    else if (prodMonth === 8 && prodDay === 31) {
-        expDate.setFullYear(prodYear + 1);
-        if (shelfLife === 12) {
-            expDate.setMonth(7); expDate.setDate(31);
-        } else if (shelfLife === 13) {
-            akhiran = currentKodeProduk + 'X';
-            expDate.setMonth(9); expDate.setDate(1);
-        }
-        handledBySpecialRule = true;
-    }
-
-    // KASUS OKTOBER (31)
-    else if (prodMonth === 10 && prodDay === 31) {
-        expDate.setFullYear(prodYear + 1);
-        if (shelfLife === 12) {
-            expDate.setMonth(9); expDate.setDate(31); 
-        } else if (shelfLife === 13) {
-            akhiran = currentKodeProduk + 'X';
-            expDate.setMonth(11); expDate.setDate(1);
-        }
-        handledBySpecialRule = true;
-    }
-
-    // ----------------------------------------------------
-    // KASUS REGULAR (Jika tidak ada aturan spesial yang berlaku)
-    // ----------------------------------------------------
-    if (!handledBySpecialRule) {
-        // Logika penambahan bulan yang aman
-        const originalProdDay = prodDate.getDate();
-        expDate.setDate(1); 
-        expDate.setMonth(prodDate.getMonth() + shelfLife);
-        
-        // Set kembali tanggal, menghindari day overflow (misal 31 Mar + 1 bulan jadi 1 Mei)
-        const lastDayOfMonth = new Date(expDate.getFullYear(), expDate.getMonth() + 1, 0).getDate();
-        expDate.setDate(Math.min(originalProdDay, lastDayOfMonth));
-        
-        // Aturan Akhiran untuk Kasus Regular
-        if (shelfLife === 13) {
-            akhiran = currentKodeProduk + 'C';
-        } 
-    }
-    
-    return {
-        tgl: expDate,
-        akhiran: akhiran
-    };
-}
-
-
-// --- EVENT LISTENERS ---
-
-// Panggil saat dokumen selesai dimuat
 document.addEventListener('DOMContentLoaded', () => {
-    // Ini harus dipanggil agar dropdown terisi
-    populateDropdowns();
-    updateDetails(); 
-    
-    // Tambahkan event listeners setelah elemen DOM dimuat
-    if (skuSelect && kemasanSelect) {
-        skuSelect.addEventListener('change', updateDetails);
-        kemasanSelect.addEventListener('change', updateDetails);
-    }
+    const form = document.getElementById('calculatorForm');
+    const lineSelect = document.getElementById('line');
+    const jalurInput = document.getElementById('jalur');
+    
+    // --- Data Konstanta ---
+    const DATA_LINE = {
+        "Line 4": { kode: "D", jalur_max: 2 },
+        "Line 6": { kode: "F", jalur_max: 3 },
+        "Line 7": { kode: "G", jalur_max: 3 },
+        "Line 9": { kode: "I", jalur_max: 4 }
+    };
 
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
+    // Tanggal yang memicu kode 'X' jika expired 8 bulan. Format: "mm-dd"
+    const TANGGAL_KHUSUS_X = [
+        "01-31", "02-29", "03-31", "06-29", "06-30", "08-31", "10-31"
+    ]; 
 
-            if (currentShelfLife === 0 || !currentKodeProduk || !currentLine && kemasanSelect.value === 'PET' ) {
-                alert("Mohon pilih kombinasi SKU dan Jenis Kemasan yang valid.");
-                return;
-            }
-            
-            const tglProduksiInput = document.getElementById('tglProduksi').value;
-            if (!tglProduksiInput) {
-                alert("Mohon masukkan Tanggal Produksi.");
-                return;
-            }
+    // --- Validasi Jalur Real-time ---
+    lineSelect.addEventListener('change', () => {
+        const line = lineSelect.value;
+        if (line) {
+            jalurInput.max = DATA_LINE[line].jalur_max;
+            jalurInput.placeholder = `Masukkan Jalur (1-${DATA_LINE[line].jalur_max})`;
+            // Reset nilai jalur jika melebihi batas baru
+            if (jalurInput.value > DATA_LINE[line].jalur_max) {
+                 jalurInput.value = '';
+            }
+        }
+    });
 
-            // Gunakan 'T00:00:00' untuk mencegah masalah zona waktu lokal
-            const tglProduksi = new Date(tglProduksiInput + 'T00:00:00'); 
-            
-            // Panggil fungsi logika kompleks
-            const expiryData = calculateExpiryData(tglProduksi, currentShelfLife);
-            const tglExpired = expiryData.tgl;
-            const kodeAkhir = expiryData.akhiran;
-            
-            // 1. Format Tanggal Expired (YYYY-MM-DD)
-            const yyyy = tglExpired.getFullYear();
-            const mm = String(tglExpired.getMonth() + 1).padStart(2, '0');
-            const dd = String(tglExpired.getDate()).padStart(2, '0');
-            const tanggalExpiredFormatted = `${yyyy}-${mm}-${dd}`;
+    // --- FUNGSI UTAMA KALKULASI & SUBMIT (HANYA ADA SATU) ---
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const line = lineSelect.value;
+        const shift = document.getElementById('shift').value;
+        const jalur = parseInt(jalurInput.value);
+        const group = document.getElementById('group').value;
+        const prodDateStr = document.getElementById('prod_date').value;
+        const expiredBulan = parseInt(document.getElementById('expired_bulan').value);
 
-            // 2. Buat Kode Expired Final
-            // Format: EXP ddmmyy A/B NN/NNC/NNX
-            
-            const codeDD = dd;
-            const codeMM = mm;
-            const codeYY = String(yyyy).slice(-2);
-            
-            // --- PERBAIKAN LOGIKA PENGGABUNGAN KODE FINAL DI SINI ---
-            const linePart = currentLine ? ` ${currentLine}` : ''; // Tambahkan spasi + Line B hanya jika Line B ada
-            const kodeExpiredFinal = `EXP ${codeDD}${codeMM}${codeYY}${linePart} ${kodeAkhir}`;
-            // ---------------------------------------------------------
+        // Validasi Awal Input
+        if (!line || !shift || !jalur || !group || !prodDateStr) {
+             alert("Mohon lengkapi semua kolom input.");
+             return;
+        }
 
-            // 3. Tampilkan Hasil
-            document.getElementById('tanggalExpired').textContent = tanggalExpiredFormatted;
-            document.getElementById('kodeExpiredFinal').textContent = kodeExpiredFinal;
-            document.getElementById('resultArea').style.display = 'block';
-        });
-    }
-});
+        // Validasi Akhir Jalur
+        if (jalur < 1 || jalur > DATA_LINE[line].jalur_max) {
+            alert(`Jalur Packing tidak valid untuk ${line}. Maksimal: ${DATA_LINE[line].jalur_max}`);
+            return;
+        }
+
+        // Jalankan Kalkulasi
+        const { tanggalBB, kodeX } = calculateBestBefore(prodDateStr, expiredBulan);
+        
+        // Buat Kode Output
+        const hasilKode = generateCode(line, shift, jalur, group, tanggalBB, kodeX);
+
+        // Tampilkan Hasil (Logic untuk menampilkan hasil di sini)
+        document.getElementById('kode_bag_cup').innerText = hasilKode.bag_cup;
+        document.getElementById('kode_karton').innerText = hasilKode.karton;
+        
+        // BARIS BARU: Menampilkan wadah hasil yang sebelumnya disembunyikan oleh CSS
+        document.getElementById('result').style.display = 'block'; 
+    });
+
+    // --- Logika Penentuan Tanggal dan Kode X ---
+    function calculateBestBefore(prodDateStr, expiredBulan) {
+        // Penanganan Tanggal Aman dari String (YYYY-MM-DD)
+        let [year, month, day] = prodDateStr.split('-').map(Number);
+        // Buat objek Date menggunakan waktu lokal (timezone-safe: bulan 0-indexed)
+        let prodDate = new Date(year, month - 1, day); 
+        
+        let kodeX = "";
+        let tanggalBB = new Date(prodDate); // Kloning tanggal produksi
+
+        const prodMonth = prodDate.getMonth() + 1; // Bulan 1-12
+        const prodDay = prodDate.getDate(); // Hari 1-31
+        const prodYear = prodDate.getFullYear();
+
+        // Helper untuk memformat mm-dd
+        const pad = (num) => String(num).padStart(2, '0');
+        const prodDateFormat = `${pad(prodMonth)}-${pad(prodDay)}`;
+        
+        // --- Cek Kasus 1: Expired 12 Bulan & 29 Februari (Tahun Kabisat) ---
+        if (expiredBulan === 12 && prodMonth === 2 && prodDay === 29) {
+            kodeX = "X";
+            // BB adalah 1 Maret tahun berikutnya
+            tanggalBB.setFullYear(prodYear + 1, 2, 1); // Bulan Maret = indeks 2
+            return { tanggalBB, kodeX };
+        }
+
+        // --- Kasus Umum: Tambahkan Bulan Expired ---
+        // Menambah bulan secara otomatis menangani overflow tahun
+        tanggalBB.setMonth(tanggalBB.getMonth() + expiredBulan);
+        
+        // --- Cek Kasus 2: Expired 8 Bulan di Tanggal Khusus ---
+        if (expiredBulan === 8 && TANGGAL_KHUSUS_X.includes(prodDateFormat)) {
+            kodeX = "X";
+            
+            // Simpan bulan dan tahun BB yang sudah dihitung (+8 bulan)
+            let yearBB = tanggalBB.getFullYear();
+            let monthBB = tanggalBB.getMonth(); // Indeks bulan BB (+8 bulan)
+            
+            
+            if (prodDateFormat === "02-29") {
+                 // Aturan Khusus 29 Feb (8 bulan): Expired 1 November
+                 monthBB += 1; // Pindah dari Oktober (indeks 9) ke November (indeks 10)
+                 tanggalBB.setDate(1); // Tanggal 1
+            } else if (prodDateFormat === "06-30") {
+                 // 30 Juni -> BB Tanggal 2
+                tanggalBB.setDate(2);
+            } else {
+                // Semua tanggal khusus lainnya -> BB Tanggal 1
+                tanggalBB.setDate(1);
+            }
+            
+            // Terapkan kembali bulan dan tahun BB yang sudah benar
+            tanggalBB.setFullYear(yearBB, monthBB, tanggalBB.getDate());
+        }
+
+        return { tanggalBB, kodeX };
+    }
+
+    // --- Logika Pembentukan String Kode ---
+    function generateCode(line, shift, jalur, group, tanggalBB, kodeX) {
+        const kodeLine = DATA_LINE[line].kode;
+        
+        // Format Tanggal BB (DDMMYY)
+        const day = String(tanggalBB.getDate()).padStart(2, '0');
+        const month = String(tanggalBB.getMonth() + 1).padStart(2, '0');
+        const year = String(tanggalBB.getFullYear()).slice(-2);
+        const ddmmyy = day + month + year;
+
+        // Komponen Kode
+        const J = jalur;
+        const L = kodeLine;
+        const S = shift;
+        const G = group;
+
+        // A. Kode Bag/Cup (Format: [X] J L S G ddmmyy)
+        const kodeBag = `${kodeX}${J}${L}${S}${G} ${ddmmyy}`;
+        const outputBag = `BEST BEFORE\n${kodeBag}`;
+
+        // B. Kode Karton (Format: [X] L S G ddmmyy HH:MM RRRR)
+        const kodeKarton = `${kodeX}${L}${S}${G} ${ddmmyy} HH:MM RRRR`;
+        const outputKarton = `${kodeKarton}\n(untuk karton ada actual jam:menit & no.counter)`;
+
+        return { bag_cup: outputBag, karton: outputKarton };
+    }
+
+}); // Penutup document.addEventListener('DOMContentLoaded')
