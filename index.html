@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="container">
-         <header>
+        <header>
             <img src="logo-abc.png" alt="Logo ABC" class="header-logo">
             <h2>Kodefikasi Expired Beverage</h2>
         </header>
@@ -20,12 +20,6 @@
             <label for="kemasan">Pilih Jenis Kemasan *</label>
             <select id="kemasan" name="kemasan" required></select>
             
-            <div class="detail-box">
-                <p><strong>SKU:</strong> <span id="displaySku">N/A</span></p>
-                <p><strong>Jenis Kemasan:</strong> <span id="displayKemasan">N/A</span></p>
-                <p><strong>Kode Produk (NN):</strong> <span id="displayKodeProduk">N/A</span></p>
-            </div>
-
             <label for="tglProduksi">Tanggal Produksi *</label>
             <input type="date" id="tglProduksi" name="tglProduksi" value="2025-10-31" required>
             
@@ -37,8 +31,15 @@
         <div id="resultArea" class="result-area" style="display: none;">
             <hr>
             <h3>HASIL KODE EXPIRED FINAL UNTUK PENCETAKAN</h3>
-            <p>Tanggal Expired (YYYY-MM-DD): <span id="tanggalExpired"></span></p>
+            
+            <p>Tanggal Expired (DD-MM-YYYY): <span id="tanggalExpired"></span></p> 
             <p class="final-code"><span id="kodeExpiredFinal"></span></p>
+            
+            <div id="detailArea" class="detail-box">
+                <p><strong>SKU:</strong> <span id="displaySku">N/A</span></p>
+                <p><strong>Jenis Kemasan:</strong> <span id="displayKemasan">N/A</span></p>
+                <p><strong>Kode Produk (NN):</strong> <span id="displayKodeProduk">N/A</span></p>
+            </div>
         </div>
     </div>
 
